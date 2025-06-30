@@ -1,0 +1,30 @@
+[0m23:38:54.699798 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000221CA38D5B0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000221CD37D4F0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000221CD37F5C0>]}
+
+
+============================== 23:38:54.716017 | 682dbd61-c235-4627-88f0-edc9995fb8e5 ==============================
+[0m23:38:54.716017 [info ] [MainThread]: Running with dbt=1.10.2
+[0m23:38:54.716017 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'write_json': 'True', 'log_cache_events': 'False', 'partial_parse': 'True', 'cache_selected_only': 'False', 'warn_error': 'None', 'debug': 'False', 'fail_fast': 'False', 'log_path': 'logs', 'version_check': 'True', 'profiles_dir': 'C:\\Users\\aseva\\.dbt', 'use_colors': 'True', 'use_experimental_parser': 'False', 'empty': 'None', 'quiet': 'False', 'no_print': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'introspect': 'True', 'static_parser': 'True', 'invocation_command': 'dbt init', 'target_path': 'None', 'log_format': 'default', 'send_anonymous_usage_stats': 'True'}
+[0m23:38:54.762010 [info ] [MainThread]: Creating dbt configuration folder at C:\Users\aseva\.dbt
+[0m23:38:59.827615 [debug] [MainThread]: Starter project path: c:\github\EMDataPipelines\.venv\Lib\site-packages\dbt\include\starter_project
+[0m23:38:59.868747 [info ] [MainThread]: 
+Your new dbt project "emergency_data" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m23:38:59.870509 [info ] [MainThread]: Setting up your profile.
+[0m23:39:30.889983 [info ] [MainThread]: Profile emergency_data written to C:\Users\aseva\.dbt\profiles.yml using target's profile_template.yml and your supplied values. Run 'dbt debug' to validate the connection.
+[0m23:39:30.889983 [debug] [MainThread]: Command `dbt init` succeeded at 23:39:30.889983 after 36.45 seconds
+[0m23:39:30.889983 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000221CD588680>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000221CEAC5820>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000221CC3EFEF0>]}
+[0m23:39:30.889983 [debug] [MainThread]: Flushing usage events
+[0m23:39:31.871549 [debug] [MainThread]: An error was encountered while trying to flush usage events
