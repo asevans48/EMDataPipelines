@@ -1,0 +1,30 @@
+event_code,event_name,severity_level,urgency_category,public_warning_required,agricultural_impact
+TOW,Tornado Warning,4,Immediate,Yes,High
+SVW,Severe Thunderstorm Warning,3,Expected,Yes,Medium
+FLW,Flash Flood Warning,4,Immediate,Yes,High
+FFW,Flood Warning,3,Expected,Yes,Medium
+WSW,Winter Storm Warning,3,Expected,Yes,High
+BWW,Blizzard Warning,4,Immediate,Yes,High
+ISW,Ice Storm Warning,3,Expected,Yes,High
+HWW,High Wind Warning,3,Expected,Yes,Medium
+HUW,Hurricane Warning,4,Immediate,Yes,High
+TSW,Tsunami Warning,4,Immediate,Yes,Low
+DUW,Dust Storm Warning,2,Expected,No,Medium
+FOW,Dense Fog Warning,2,Expected,No,Low
+HEW,Excessive Heat Warning,3,Expected,Yes,High
+FRW,Freeze Warning,2,Expected,Yes,High
+FZW,Hard Freeze Warning,3,Expected,Yes,High
+WCW,Wind Chill Warning,3,Expected,Yes,Medium
+AVW,Avalanche Warning,3,Expected,Yes,Low
+CFW,Coastal Flood Warning,3,Expected,Yes,Low
+SMW,Snow Squall Warning,2,Expected,No,Medium
+TOA,Tornado Watch,2,Possible,No,Low
+SVA,Severe Thunderstorm Watch,2,Possible,No,Low
+FLA,Flash Flood Watch,2,Possible,No,Medium
+FFA,Flood Watch,2,Possible,No,Medium
+WSA,Winter Storm Watch,2,Possible,No,Medium
+BWA,Blizzard Watch,2,Possible,No,Medium
+HWA,High Wind Watch,2,Possible,No,Low
+HUA,Hurricane Watch,3,Likely,Yes,Medium
+HEA,Excessive Heat Watch,2,Possible,No,Medium
+FRA,Freeze Watch,1,Possible,No,High

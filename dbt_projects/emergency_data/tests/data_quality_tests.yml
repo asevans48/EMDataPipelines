@@ -1,0 +1,419 @@
+# tests/data_quality_tests.yml
+version: 2
+
+# Cross-model consistency tests
+tests:
+  - name: test_disaster_state_consistency
+    description: "Ensure all disaster states exist in reference data"
+    config:
+      severity: error
+      store_failures: true
+    sql: |
+      SELECT DISTINCT d.state
+      FROM {{ ref('stg_fema_disasters') }} d
+      LEFT JOIN {{ ref('state_codes') }} s ON d.state = s.state_code
+      WHERE s.state_code IS NULL
+
+  - name: test_weather_alert_temporal_consistency
+    description: "Ensure weather alerts have valid time ranges"
+    config:
+      severity: error
+      store_failures: true
+    sql: |
+      SELECT alert_id, effective_datetime, expires_datetime
+      FROM {{ ref('stg_noaa_weather') }}
+      WHERE effective_datetime >= expires_datetime
+        AND expires_datetime IS NOT NULL
+
+  - name: test_agricultural_data_temporal_consistency
+    description: "Ensure agricultural program years are valid"
+    config:
+      severity: error
+      store_failures: true
+    sql: |
+      SELECT program_year, COUNT(*)
+      FROM {{ ref('stg_usda_data') }}
+      WHERE program_year < 1980 
+         OR program_year > YEAR(CURRENT_DATE()) + 1
+      GROUP BY program_year
+
+  - name: test_emergency_events_deduplication
+    description: "Check for duplicate emergency events"
+    config:
+      severity: warn
+      store_failures: true
+    sql: |
+      SELECT event_id, COUNT(*)
+      FROM {{ ref('emergency_events') }}
+      GROUP BY event_id
+      HAVING COUNT(*) > 1
+
+  - name: test_weather_impact_score_validity
+    description: "Validate weather impact scores are within expected range"
+    config:
+      severity: error
+      store_failures: true
+    sql: |
+      SELECT impact_id, total_impact_score
+      FROM {{ ref('weather_impacts') }}
+      WHERE total_impact_score < 0 OR total_impact_score > 9
+
+# Federal compliance tests
+  - name: test_federal_data_classification_compliance
+    description: "Ensure all records have valid federal data classifications"
+    config:
+      severity: error
+      store_failures: true
+      tags: ["compliance", "fedramp"]
+    sql: |
+      SELECT 'stg_fema_disasters' as table_name, COUNT(*) as non_compliant_count
+      FROM {{ ref('stg_fema_disasters') }}
+      WHERE data_classification NOT IN ('PUBLIC', 'INTERNAL', 'RESTRICTED', 'CONFIDENTIAL')
+      
+      UNION ALL
+      
+      SELECT 'stg_noaa_weather' as table_name, COUNT(*) as non_compliant_count
+      FROM {{ ref('stg_noaa_weather') }}
+      WHERE data_classification NOT IN ('PUBLIC', 'INTERNAL', 'RESTRICTED', 'CONFIDENTIAL')
+      
+      UNION ALL
+      
+      SELECT 'stg_coagmet_data' as table_name, COUNT(*) as non_compliant_count
+      FROM {{ ref('stg_coagmet_data') }}
+      WHERE data_classification NOT IN ('PUBLIC', 'INTERNAL', 'RESTRICTED', 'CONFIDENTIAL')
+      
+      UNION ALL
+      
+      SELECT 'stg_usda_data' as table_name, COUNT(*) as non_compliant_count
+      FROM {{ ref('stg_usda_data') }}
+      WHERE data_classification NOT IN ('PUBLIC', 'INTERNAL', 'RESTRICTED', 'CONFIDENTIAL')
+
+  - name: test_federal_retention_date_compliance
+    description: "Ensure all records have proper retention dates per federal requirements"
+    config:
+      severity: error
+      store_failures: true
+      tags: ["compliance", "data_retention"]
+    sql: |
+      SELECT 'stg_fema_disasters' as table_name, COUNT(*) as missing_retention_dates
+      FROM {{ ref('stg_fema_disasters') }}
+      WHERE retention_date IS NULL
+      
+      UNION ALL
+      
+      SELECT 'stg_noaa_weather' as table_name, COUNT(*) as missing_retention_dates
+      FROM {{ ref('stg_noaa_weather') }}
+      WHERE retention_date IS NULL
+      
+      UNION ALL
+      
+      SELECT 'stg_coagmet_data' as table_name, COUNT(*) as missing_retention_dates
+      FROM {{ ref('stg_coagmet_data') }}
+      WHERE retention_date IS NULL
+      
+      UNION ALL
+      
+      SELECT 'stg_usda_data' as table_name, COUNT(*) as missing_retention_dates
+      FROM {{ ref('stg_usda_data') }}
+      WHERE retention_date IS NULL
+
+  - name: test_data_freshness_compliance
+    description: "Monitor data freshness for federal compliance requirements"
+    config:
+      severity: warn
+      store_failures: true
+      tags: ["compliance", "data_freshness"]
+    sql: |
+      SELECT 
+        'FEMA_DISASTERS' as data_source,
+        MAX(processed_at) as last_update,
+        CURRENT_TIMESTAMP() as check_time,
+        TIMESTAMPDIFF(HOUR, MAX(processed_at), CURRENT_TIMESTAMP()) as hours_since_update
+      FROM {{ ref('stg_fema_disasters') }}
+      HAVING hours_since_update > 24
+      
+      UNION ALL
+      
+      SELECT 
+        'NOAA_WEATHER' as data_source,
+        MAX(processed_at) as last_update,
+        CURRENT_TIMESTAMP() as check_time,
+        TIMESTAMPDIFF(HOUR, MAX(processed_at), CURRENT_TIMESTAMP()) as hours_since_update
+      FROM {{ ref('stg_noaa_weather') }}
+      HAVING hours_since_update > 4
+      
+      UNION ALL
+      
+      SELECT 
+        'COAGMET_WEATHER' as data_source,
+        MAX(processed_at) as last_update,
+        CURRENT_TIMESTAMP() as check_time,
+        TIMESTAMPDIFF(HOUR, MAX(processed_at), CURRENT_TIMESTAMP()) as hours_since_update
+      FROM {{ ref('stg_coagmet_data') }}
+      HAVING hours_since_update > 2
+
+  - name: test_pii_data_protection
+    description: "Ensure no PII data exists in public datasets"
+    config:
+      severity: error
+      store_failures: true
+      tags: ["compliance", "privacy", "pii"]
+    sql: |
+      -- Check for potential PII patterns in text fields
+      SELECT 'fema_disasters' as table_name, disaster_number, disaster_title
+      FROM {{ ref('stg_fema_disasters') }}
+      WHERE disaster_title REGEXP '[0-9]{3}-[0-9]{2}-[0-9]{4}'  -- SSN pattern
+         OR disaster_title REGEXP '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'  -- Email pattern
+         OR disaster_title REGEXP '\([0-9]{3}\) [0-9]{3}-[0-9]{4}'  -- Phone pattern
+      
+      UNION ALL
+      
+      SELECT 'weather_alerts' as table_name, alert_id, alert_headline
+      FROM {{ ref('stg_noaa_weather') }}
+      WHERE alert_headline REGEXP '[0-9]{3}-[0-9]{2}-[0-9]{4}'
+         OR alert_headline REGEXP '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+         OR alert_headline REGEXP '\([0-9]{3}\) [0-9]{3}-[0-9]{4}'
+
+# Data quality monitoring tests
+  - name: test_completeness_threshold_fema
+    description: "Ensure FEMA data meets completeness thresholds"
+    config:
+      severity: warn
+      store_failures: true
+      tags: ["data_quality"]
+    sql: |
+      WITH completeness_check AS (
+        SELECT 
+          COUNT(*) as total_records,
+          COUNT(disaster_number) as disaster_number_complete,
+          COUNT(state) as state_complete,
+          COUNT(declaration_date) as declaration_date_complete,
+          COUNT(incident_type) as incident_type_complete
+        FROM {{ ref('stg_fema_disasters') }}
+      )
+      SELECT 
+        'disaster_number' as field_name,
+        disaster_number_complete / total_records as completeness_ratio
+      FROM completeness_check
+      WHERE disaster_number_complete / total_records < 0.95
+      
+      UNION ALL
+      
+      SELECT 
+        'state' as field_name,
+        state_complete / total_records as completeness_ratio
+      FROM completeness_check
+      WHERE state_complete / total_records < 0.95
+      
+      UNION ALL
+      
+      SELECT 
+        'declaration_date' as field_name,
+        declaration_date_complete / total_records as completeness_ratio
+      FROM completeness_check
+      WHERE declaration_date_complete / total_records < 0.95
+      
+      UNION ALL
+      
+      SELECT 
+        'incident_type' as field_name,
+        incident_type_complete / total_records as completeness_ratio
+      FROM completeness_check
+      WHERE incident_type_complete / total_records < 0.95
+
+  - name: test_accuracy_weather_measurements
+    description: "Validate weather measurement accuracy within expected ranges"
+    config:
+      severity: error
+      store_failures: true
+      tags: ["data_quality", "accuracy"]
+    sql: |
+      SELECT 
+        station_id,
+        observation_datetime,
+        temperature_celsius,
+        relative_humidity_percent,
+        wind_speed_kmh,
+        precipitation_mm
+      FROM {{ ref('stg_coagmet_data') }}
+      WHERE temperature_celsius < -50 
+         OR temperature_celsius > 60
+         OR relative_humidity_percent < 0 
+         OR relative_humidity_percent > 100
+         OR wind_speed_kmh < 0 
+         OR wind_speed_kmh > 200
+         OR precipitation_mm < 0 
+         OR precipitation_mm > 500
+
+  - name: test_business_logic_agricultural_loss_ratios
+    description: "Validate agricultural loss ratio calculations"
+    config:
+      severity: warn
+      store_failures: true
+      tags: ["business_logic"]
+    sql: |
+      SELECT 
+        state_code,
+        county_code,
+        program_year,
+        commodity_name,
+        premium_amount_usd,
+        indemnity_amount_usd,
+        loss_ratio,
+        -- Recalculate loss ratio for validation
+        CASE 
+          WHEN premium_amount_usd > 0 THEN indemnity_amount_usd / premium_amount_usd
+          ELSE NULL
+        END as calculated_loss_ratio
+      FROM {{ ref('stg_usda_data') }}
+      WHERE ABS(loss_ratio - (indemnity_amount_usd / NULLIF(premium_amount_usd, 0))) > 0.01
+        AND premium_amount_usd > 0
+
+# Performance and optimization tests
+  - name: test_table_row_counts
+    description: "Monitor table sizes for performance optimization"
+    config:
+      severity: warn
+      store_failures: false
+      tags: ["performance"]
+    sql: |
+      SELECT 
+        'emergency_events' as table_name,
+        COUNT(*) as row_count,
+        CURRENT_TIMESTAMP() as check_timestamp
+      FROM {{ ref('emergency_events') }}
+      HAVING COUNT(*) > 1000000  -- Alert if over 1M rows
+      
+      UNION ALL
+      
+      SELECT 
+        'weather_impacts' as table_name,
+        COUNT(*) as row_count,
+        CURRENT_TIMESTAMP() as check_timestamp
+      FROM {{ ref('weather_impacts') }}
+      HAVING COUNT(*) > 500000  -- Alert if over 500K rows
+      
+      UNION ALL
+      
+      SELECT 
+        'disaster_analytics' as table_name,
+        COUNT(*) as row_count,
+        CURRENT_TIMESTAMP() as check_timestamp
+      FROM {{ ref('disaster_analytics') }}
+      HAVING COUNT(*) > 100000  -- Alert if over 100K rows
+
+  - name: test_partition_distribution
+    description: "Check partition distribution for optimal performance"
+    config:
+      severity: warn
+      store_failures: false
+      tags: ["performance", "partitioning"]
+    sql: |
+      SELECT 
+        DATE(event_date) as partition_date,
+        COUNT(*) as records_per_partition
+      FROM {{ ref('emergency_events') }}
+      GROUP BY DATE(event_date)
+      HAVING COUNT(*) > 10000  -- Alert if partition too large
+         OR COUNT(*) < 10      -- Alert if partition too small
+
+# Public API data integrity tests
+  - name: test_public_api_data_consistency
+    description: "Ensure public API models maintain data consistency"
+    config:
+      severity: error
+      store_failures: true
+      tags: ["api", "public_data"]
+    sql: |
+      -- Check for mismatches between source and public API data
+      SELECT 
+        pd.disaster_id,
+        pd.disaster_type,
+        ee.event_subtype
+      FROM {{ ref('public_disasters') }} pd
+      JOIN {{ ref('emergency_events') }} ee ON pd.disaster_id = ee.event_id
+      WHERE pd.disaster_type != ee.event_subtype
+
+  - name: test_public_api_privacy_compliance
+    description: "Ensure public API models don't expose sensitive data"
+    config:
+      severity: error
+      store_failures: true
+      tags: ["api", "privacy", "compliance"]
+    sql: |
+      -- Ensure agricultural data meets minimum aggregation thresholds
+      SELECT 
+        state_code,
+        county_code,
+        program_year,
+        crop_type,
+        number_of_policies
+      FROM {{ ref('public_agricultural_data') }}
+      WHERE number_of_policies < 5  -- Privacy threshold violation
+
+# Audit and compliance reporting tests
+  - name: test_audit_trail_completeness
+    description: "Ensure complete audit trails for federal compliance"
+    config:
+      severity: error
+      store_failures: true
+      tags: ["audit", "compliance"]
+    sql: |
+      SELECT 
+        'missing_processing_version' as issue_type,
+        COUNT(*) as record_count
+      FROM {{ ref('stg_fema_disasters') }}
+      WHERE processing_version IS NULL
+      
+      UNION ALL
+      
+      SELECT 
+        'missing_ingestion_timestamp' as issue_type,
+        COUNT(*) as record_count
+      FROM {{ ref('stg_fema_disasters') }}
+      WHERE ingestion_timestamp IS NULL
+      
+      UNION ALL
+      
+      SELECT 
+        'missing_processed_at' as issue_type,
+        COUNT(*) as record_count
+      FROM {{ ref('stg_fema_disasters') }}
+      WHERE processed_at IS NULL
+
+# Emergency response readiness tests
+  - name: test_high_risk_event_alerting
+    description: "Ensure high-risk events are properly flagged for emergency response"
+    config:
+      severity: warn
+      store_failures: true
+      tags: ["emergency_response"]
+    sql: |
+      SELECT 
+        event_id,
+        event_type,
+        risk_level,
+        event_date,
+        state_code
+      FROM {{ ref('emergency_events') }}
+      WHERE risk_level IN ('HIGH', 'CRITICAL')
+        AND event_date >= CURRENT_DATE() - INTERVAL 7 DAY
+        AND is_high_impact_event = FALSE  -- Inconsistency flag
+
+  - name: test_weather_agricultural_impact_correlation
+    description: "Validate correlation between weather conditions and agricultural impacts"
+    config:
+      severity: warn
+      store_failures: true
+      tags: ["business_logic", "correlation"]
+    sql: |
+      SELECT 
+        wi.impact_id,
+        wi.total_impact_score,
+        wi.agricultural_impact_assessment,
+        wi.impact_category
+      FROM {{ ref('weather_impacts') }} wi
+      WHERE (wi.total_impact_score >= 6 AND wi.impact_category = 'MINIMAL')
+         OR (wi.total_impact_score <= 2 AND wi.impact_category = 'SEVERE')
+         OR (wi.agricultural_impact_assessment IN ('HIGH_CROP_RISK', 'DROUGHT_RISK') 
+             AND wi.impact_category = 'MINIMAL')

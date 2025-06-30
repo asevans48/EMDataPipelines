@@ -1,0 +1,169 @@
+
+# models/marts/schema.yml
+version: 2
+
+models:
+  - name: emergency_events
+    description: "Unified emergency events combining disasters and significant weather alerts"
+    columns:
+      - name: event_id
+        description: "Unique event identifier across all sources"
+        tests:
+          - not_null
+          - unique
+      - name: event_type
+        description: "Type of emergency event"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['DISASTER', 'WEATHER_ALERT']
+      - name: event_category
+        description: "Standardized event category"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['TROPICAL_STORM', 'FLOODING', 'FIRE', 'SEVERE_WEATHER', 'WINTER_WEATHER', 'GEOLOGICAL', 'CLIMATOLOGICAL', 'OTHER']
+      - name: state_code
+        description: "State where event occurred"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('state_codes')
+              field: state_code
+      - name: risk_level
+        description: "Event risk assessment"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+      - name: federal_fiscal_year
+        description: "Federal fiscal year (Oct-Sep)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1950
+              max_value: "extract(year from current_date()) + 2"
+
+  - name: weather_impacts
+    description: "Weather impact analysis with agricultural and infrastructure risk assessment"
+    columns:
+      - name: impact_id
+        description: "Unique impact analysis identifier"
+        tests:
+          - not_null
+          - unique
+      - name: station_id
+        description: "Weather station identifier"
+        tests:
+          - not_null
+      - name: impact_date
+        description: "Date of weather impact analysis"
+        tests:
+          - not_null
+      - name: total_impact_score
+        description: "Composite impact score (0-9)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 9
+      - name: impact_category
+        description: "Impact severity category"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['MINIMAL', 'MINOR', 'MODERATE', 'SEVERE']
+      - name: agricultural_impact_assessment
+        description: "Specific agricultural risk assessment"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['NORMAL_CONDITIONS', 'HIGH_CROP_RISK', 'DROUGHT_RISK', 'HARVEST_RISK', 'STRUCTURAL_DAMAGE_RISK']
+
+  - name: disaster_analytics
+    description: "Comprehensive disaster trend analysis and risk assessment by state and category"
+    columns:
+      - name: analytics_id
+        description: "Unique analytics record identifier"
+        tests:
+          - not_null
+          - unique
+      - name: state_code
+        description: "State code for analysis"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('state_codes')
+              field: state_code
+      - name: disaster_year
+        description: "Year of disaster analysis"
+        tests:
+          - not_null
+      - name: event_category
+        description: "Disaster event category"
+        tests:
+          - not_null
+      - name: annual_disaster_risk_rating
+        description: "Annual risk rating for the state and category"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LOW', 'MODERATE', 'HIGH', 'VERY_HIGH']
+      - name: disaster_trend_direction
+        description: "Trend analysis compared to previous year"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['INCREASING', 'DECREASING', 'STABLE', 'INSUFFICIENT_DATA']
+      - name: high_risk_event_percentage
+        description: "Percentage of events that were high risk"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+# Data quality tests
+tests:
+  - name: test_data_freshness_fema
+    description: "Ensure FEMA data is updated within 24 hours"
+    sql: |
+      SELECT COUNT(*) as stale_records
+      FROM {{ ref('stg_fema_disasters') }}
+      WHERE processed_at < CURRENT_TIMESTAMP() - INTERVAL 24 HOUR
+
+  - name: test_data_freshness_noaa
+    description: "Ensure NOAA data is updated within 4 hours"
+    sql: |
+      SELECT COUNT(*) as stale_records
+      FROM {{ ref('stg_noaa_weather') }}
+      WHERE processed_at < CURRENT_TIMESTAMP() - INTERVAL 4 HOUR
+
+  - name: test_federal_compliance_classification
+    description: "Ensure all records have proper data classification"
+    sql: |
+      SELECT COUNT(*) as non_compliant_records
+      FROM (
+        SELECT data_classification FROM {{ ref('stg_fema_disasters') }}
+        UNION ALL
+        SELECT data_classification FROM {{ ref('stg_noaa_weather') }}
+        UNION ALL
+        SELECT data_classification FROM {{ ref('stg_coagmet_data') }}
+        UNION ALL
+        SELECT data_classification FROM {{ ref('stg_usda_data') }}
+      ) all_data
+      WHERE data_classification NOT IN ('PUBLIC', 'INTERNAL', 'RESTRICTED', 'CONFIDENTIAL')
+
+  - name: test_retention_dates_set
+    description: "Ensure all records have retention dates for federal compliance"
+    sql: |
+      SELECT COUNT(*) as missing_retention_dates
+      FROM (
+        SELECT retention_date FROM {{ ref('stg_fema_disasters') }}
+        UNION ALL
+        SELECT retention_date FROM {{ ref('stg_noaa_weather') }}
+        UNION ALL
+        SELECT retention_date FROM {{ ref('stg_coagmet_data') }}
+        UNION ALL
+        SELECT retention_date FROM {{ ref('stg_usda_data') }}
+      ) all_data
+      WHERE retention_date IS NULL

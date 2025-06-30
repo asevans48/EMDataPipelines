@@ -1,0 +1,129 @@
+# models/staging/schema.yml
+version: 2
+
+models:
+  - name: stg_fema_disasters
+    description: "Standardized FEMA disaster declarations with federal compliance metadata"
+    columns:
+      - name: disaster_number
+        description: "Unique FEMA disaster identifier"
+        tests:
+          - not_null
+          - unique
+      - name: state
+        description: "Two-letter state code"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('state_codes')
+              field: state_code
+      - name: declaration_date
+        description: "Date the disaster was declared"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: "'1950-01-01'"
+              max_value: "current_date()"
+      - name: incident_type
+        description: "Standardized disaster type"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('disaster_types')
+              field: disaster_name
+      - name: data_classification
+        description: "Federal data classification level"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['PUBLIC', 'INTERNAL', 'RESTRICTED', 'CONFIDENTIAL']
+      - name: retention_date
+        description: "Data retention expiration date per federal requirements"
+        tests:
+          - not_null
+
+  - name: stg_noaa_weather
+    description: "Standardized NOAA weather alerts with risk assessment"
+    columns:
+      - name: alert_id
+        description: "Unique weather alert identifier"
+        tests:
+          - not_null
+          - unique
+      - name: weather_event
+        description: "Standardized weather event type"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('weather_event_codes')
+              field: event_name
+      - name: risk_level
+        description: "Calculated risk level based on severity and urgency"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+      - name: effective_datetime
+        description: "Alert effective date and time"
+        tests:
+          - not_null
+      - name: alert_duration_hours
+        description: "Duration of alert in hours"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 2160  # 90 days max
+
+  - name: stg_coagmet_data
+    description: "Standardized Colorado AgMet weather observations with quality checks"
+    columns:
+      - name: station_id
+        description: "Weather station identifier"
+        tests:
+          - not_null
+      - name: observation_datetime
+        description: "Observation timestamp"
+        tests:
+          - not_null
+      - name: temperature_celsius
+        description: "Validated temperature in Celsius"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -50
+              max_value: 60
+      - name: relative_humidity_percent
+        description: "Validated relative humidity percentage"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: agricultural_risk_indicator
+        description: "Agricultural risk assessment based on weather conditions"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['NORMAL', 'FREEZE_WARNING', 'HEAT_WARNING', 'WIND_WARNING', 'HEAVY_RAIN']
+
+  - name: stg_usda_data
+    description: "Standardized USDA agricultural insurance data with loss calculations"
+    columns:
+      - name: program_year
+        description: "Insurance program year"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1980
+              max_value: "extract(year from current_date()) + 1"
+      - name: state_code
+        description: "State postal code"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('state_codes')
+              field: state_code
+      - name: loss_ratio
+        description: "Calculated loss ratio (indemnity/premium)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 50  # Reasonable upper bound for loss ratios

@@ -1,0 +1,340 @@
+# Data Quality Rules for Emergency Management Pipeline
+# Source-specific validation rules and quality thresholds
+
+# Global Quality Standards
+global_quality:
+  completeness_threshold: 0.95
+  uniqueness_threshold: 0.98
+  timeliness_threshold_hours: 24
+  accuracy_threshold: 0.95
+  consistency_threshold: 0.90
+
+# FEMA Data Quality Rules
+fema_quality:
+  required_fields:
+    - disaster_number
+    - state
+    - declaration_date
+    - incident_type
+    
+  field_patterns:
+    disaster_number: '^\d{4,5}$'
+    state: '^[A-Z]{2}$'
+    declaration_date: '^\d{4}-\d{2}-\d{2}'
+    
+  business_rules:
+    - name: "disaster_number_uniqueness"
+      description: "Disaster numbers should be unique within a state"
+      rule: "UNIQUE(disaster_number, state)"
+      
+    - name: "declaration_date_validity"
+      description: "Declaration date should not be in the future"
+      rule: "declaration_date <= CURRENT_DATE"
+      
+    - name: "incident_date_logic"
+      description: "Incident begin date should be before or equal to end date"
+      rule: "incident_begin_date <= incident_end_date"
+      
+  data_ranges:
+    disaster_number:
+      min: 1000
+      max: 99999
+      
+  acceptable_values:
+    incident_type:
+      - "Drought"
+      - "Earthquake"  
+      - "Fire"
+      - "Flood"
+      - "Hurricane"
+      - "Severe Storm"
+      - "Tornado"
+      - "Winter Storm"
+      - "Other"
+      
+  quality_dimensions:
+    completeness:
+      threshold: 0.98
+      critical_fields: ["disaster_number", "state", "incident_type"]
+      
+    timeliness:
+      max_age_hours: 4
+      update_frequency: "hourly"
+      
+    accuracy:
+      state_code_validation: true
+      date_format_validation: true
+      
+    consistency:
+      cross_field_validation: true
+      duplicate_detection: true
+
+# NOAA Weather Data Quality Rules
+noaa_quality:
+  required_fields:
+    - alert_id
+    - event
+    - severity
+    - effective
+    
+  field_patterns:
+    alert_id: '^[A-Z0-9\-]+$'
+    severity: '^(Extreme|Severe|Moderate|Minor)$'
+    urgency: '^(Immediate|Expected|Future|Past)$'
+    certainty: '^(Observed|Likely|Possible|Unlikely)$'
+    
+  business_rules:
+    - name: "alert_time_logic"
+      description: "Effective time should be before expires time"
+      rule: "effective <= expires"
+      
+    - name: "alert_recency"
+      description: "Alerts should not be older than 7 days"
+      rule: "effective >= CURRENT_DATE - INTERVAL 7 DAY"
+      
+  acceptable_values:
+    severity:
+      - "Extreme"
+      - "Severe" 
+      - "Moderate"
+      - "Minor"
+      
+    urgency:
+      - "Immediate"
+      - "Expected"
+      - "Future"
+      - "Past"
+      
+    certainty:
+      - "Observed"
+      - "Likely"
+      - "Possible"
+      - "Unlikely"
+      
+  quality_dimensions:
+    completeness:
+      threshold: 0.99
+      critical_fields: ["alert_id", "event", "severity"]
+      
+    timeliness:
+      max_age_minutes: 15  # Weather alerts are time-critical
+      update_frequency: "real_time"
+      
+    accuracy:
+      geographic_validation: true
+      severity_consistency: true
+      
+    consistency:
+      temporal_validation: true
+      duplicate_alert_detection: true
+
+# CoAgMet Weather Station Quality Rules
+coagmet_quality:
+  required_fields:
+    - station_id
+    - timestamp
+    - temperature
+    
+  field_patterns:
+    station_id: '^[A-Z0-9]+$'
+    timestamp: '^\d{4}-\d{2}-\d{2}'
+    
+  data_ranges:
+    temperature_celsius:
+      min: -50
+      max: 60
+      
+    humidity:
+      min: 0
+      max: 100
+      
+    wind_speed:
+      min: 0
+      max: 200  # km/h
+      
+    precipitation:
+      min: 0
+      max: 500  # mm per reading
+      
+  business_rules:
+    - name: "temperature_reasonableness"
+      description: "Temperature should be within reasonable range for Colorado"
+      rule: "temperature_celsius BETWEEN -40 AND 50"
+      
+    - name: "humidity_validity"
+      description: "Humidity should be between 0 and 100 percent"
+      rule: "humidity BETWEEN 0 AND 100"
+      
+    - name: "timestamp_recency"
+      description: "Data should not be older than 6 hours for real-time monitoring"
+      rule: "timestamp >= CURRENT_TIMESTAMP - INTERVAL 6 HOUR"
+      
+  quality_dimensions:
+    completeness:
+      threshold: 0.95
+      critical_fields: ["station_id", "timestamp", "temperature"]
+      
+    timeliness:
+      max_age_hours: 2
+      update_frequency: "hourly"
+      
+    accuracy:
+      range_validation: true
+      outlier_detection: true
+      sensor_calibration_check: true
+      
+    consistency:
+      temporal_continuity: true
+      cross_station_validation: true
+
+# USDA Agricultural Data Quality Rules
+usda_quality:
+  required_fields:
+    - commodity
+    - state_alpha
+    - year
+    - value
+    
+  field_patterns:
+    state_alpha: '^[A-Z]{2}$'
+    year: '^\d{4}$'
+    commodity: '^[A-Z\s,]+$'
+    
+  data_ranges:
+    year:
+      min: 1990
+      max: 2030  # Allow some future projections
+      
+    value:
+      min: 0
+      max: 999999999  # Large agricultural values possible
+      
+  business_rules:
+    - name: "year_validity"
+      description: "Year should be reasonable for agricultural data"
+      rule: "year BETWEEN 1990 AND YEAR(CURRENT_DATE) + 2"
+      
+    - name: "value_positivity"
+      description: "Agricultural values should be non-negative"
+      rule: "value >= 0"
+      
+  acceptable_values:
+    commodity:
+      - "CORN"
+      - "SOYBEANS" 
+      - "WHEAT"
+      - "COTTON"
+      - "RICE"
+      - "SORGHUM"
+      - "BARLEY"
+      - "OATS"
+      - "HAY"
+      # Note: This is a subset - USDA has hundreds of commodities
+      
+  quality_dimensions:
+    completeness:
+      threshold: 0.90  # USDA data can have some gaps
+      critical_fields: ["commodity", "state_alpha", "year"]
+      
+    timeliness:
+      max_age_days: 30  # Agricultural data updates less frequently
+      update_frequency: "monthly"
+      
+    accuracy:
+      statistical_validation: true
+      historical_comparison: true
+      
+    consistency:
+      year_over_year_validation: true
+      cross_commodity_checks: true
+
+# Anomaly Detection Rules
+anomaly_detection:
+  statistical_methods:
+    z_score_threshold: 3.0
+    iqr_multiplier: 1.5
+    isolation_forest_contamination: 0.1
+    
+  temporal_anomalies:
+    data_gap_threshold_hours: 6
+    unusual_volume_threshold: 2.0  # 2x normal volume
+    burst_detection_window_minutes: 15
+    
+  geographic_anomalies:
+    unexpected_state_threshold: 0.05  # 5% from unexpected states
+    coordinate_validation: true
+    geospatial_clustering: true
+    
+  business_logic_anomalies:
+    disaster_frequency_check: true
+    weather_severity_distribution: true
+    agricultural_seasonality_check: true
+
+# Data Quality Monitoring
+monitoring:
+  quality_dashboard_refresh_minutes: 15
+  alert_thresholds:
+    critical_quality_score: 0.80
+    warning_quality_score: 0.90
+    error_rate_threshold: 0.05
+    
+  notification_channels:
+    - email
+    - slack
+    - dashboard_alerts
+    
+  quality_reports:
+    daily_summary: true
+    weekly_detailed: true
+    monthly_trend_analysis: true
+    
+  remediation_actions:
+    auto_retry_failed_validations: true
+    quarantine_bad_data: true
+    alert_data_stewards: true
+
+# Quality Improvement Actions
+quality_actions:
+  low_completeness:
+    - "Review data source API for missing fields"
+    - "Implement field mapping corrections"
+    - "Contact data provider for completeness issues"
+    
+  poor_timeliness:
+    - "Check data ingestion schedule and triggers"
+    - "Verify API endpoint availability"
+    - "Optimize data processing pipeline"
+    
+  accuracy_issues:
+    - "Validate data transformation logic"
+    - "Cross-reference with authoritative sources"
+    - "Implement additional validation rules"
+    
+  consistency_problems:
+    - "Review data integration processes"
+    - "Check for schema changes in source systems"
+    - "Implement cross-field validation rules"
+
+# Quality Metrics Collection
+metrics:
+  collection_frequency: "real_time"
+  retention_days: 90
+  
+  tracked_metrics:
+    - completeness_by_field
+    - timeliness_by_source
+    - accuracy_scores
+    - consistency_violations
+    - anomaly_counts
+    - validation_rule_failures
+    
+  aggregation_levels:
+    - source
+    - field
+    - time_period
+    - geographic_region
+    
+  export_formats:
+    - json
+    - csv
+    - parquet

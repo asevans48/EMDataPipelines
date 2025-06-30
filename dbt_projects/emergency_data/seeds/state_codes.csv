@@ -1,0 +1,54 @@
+state_code,state_name,fips_code,region,emergency_contact
+AL,Alabama,01,Southeast,al.emergency@aema.gov
+AK,Alaska,02,West,ak.emergency@ready.alaska.gov
+AZ,Arizona,04,Southwest,az.emergency@azdema.gov
+AR,Arkansas,05,Southeast,ar.emergency@adem.arkansas.gov
+CA,California,06,West,ca.emergency@caloes.ca.gov
+CO,Colorado,08,West,co.emergency@state.co.us
+CT,Connecticut,09,Northeast,ct.emergency@ct.gov
+DE,Delaware,10,Mid-Atlantic,de.emergency@delaware.gov
+FL,Florida,12,Southeast,fl.emergency@em.myflorida.com
+GA,Georgia,13,Southeast,ga.emergency@gema.ga.gov
+HI,Hawaii,15,West,hi.emergency@dod.hawaii.gov
+ID,Idaho,16,West,id.emergency@imd.idaho.gov
+IL,Illinois,17,Midwest,il.emergency@illinois.gov
+IN,Indiana,18,Midwest,in.emergency@dhs.in.gov
+IA,Iowa,19,Midwest,ia.emergency@iowa.gov
+KS,Kansas,20,Central,ks.emergency@kdem.ks.gov
+KY,Kentucky,21,Southeast,ky.emergency@ky.gov
+LA,Louisiana,22,Southeast,la.emergency@gohsep.la.gov
+ME,Maine,23,Northeast,me.emergency@maine.gov
+MD,Maryland,24,Mid-Atlantic,md.emergency@maryland.gov
+MA,Massachusetts,25,Northeast,ma.emergency@mass.gov
+MI,Michigan,26,Midwest,mi.emergency@michigan.gov
+MN,Minnesota,27,Midwest,mn.emergency@dps.mn.gov
+MS,Mississippi,28,Southeast,ms.emergency@msema.org
+MO,Missouri,29,Central,mo.emergency@sema.dps.mo.gov
+MT,Montana,30,West,mt.emergency@mt.gov
+NE,Nebraska,31,Central,ne.emergency@nebraska.gov
+NV,Nevada,32,West,nv.emergency@dps.state.nv.us
+NH,New Hampshire,33,Northeast,nh.emergency@dos.nh.gov
+NJ,New Jersey,34,Mid-Atlantic,nj.emergency@njoem.gov
+NM,New Mexico,35,Southwest,nm.emergency@state.nm.us
+NY,New York,36,Northeast,ny.emergency@dhses.ny.gov
+NC,North Carolina,37,Southeast,nc.emergency@ncdps.gov
+ND,North Dakota,38,Central,nd.emergency@nd.gov
+OH,Ohio,39,Midwest,oh.emergency@dps.ohio.gov
+OK,Oklahoma,40,Central,ok.emergency@ok.gov
+OR,Oregon,41,West,or.emergency@oem.oregon.gov
+PA,Pennsylvania,42,Mid-Atlantic,pa.emergency@pa.gov
+RI,Rhode Island,44,Northeast,ri.emergency@riema.ri.gov
+SC,South Carolina,45,Southeast,sc.emergency@emd.sc.gov
+SD,South Dakota,46,Central,sd.emergency@state.sd.us
+TN,Tennessee,47,Southeast,tn.emergency@tn.gov
+TX,Texas,48,South,tx.emergency@tdem.texas.gov
+UT,Utah,49,West,ut.emergency@utah.gov
+VT,Vermont,50,Northeast,vt.emergency@vermont.gov
+VA,Virginia,51,Mid-Atlantic,va.emergency@vaemergency.gov
+WA,Washington,53,West,wa.emergency@mil.wa.gov
+WV,West Virginia,54,Mid-Atlantic,wv.emergency@wv.gov
+WI,Wisconsin,55,Midwest,wi.emergency@dma.wi.gov
+WY,Wyoming,56,West,wy.emergency@wyo.gov
+DC,District of Columbia,11,Mid-Atlantic,dc.emergency@dc.gov
+PR,Puerto Rico,72,Caribbean,pr.emergency@nmead.pr.gov
+VI,Virgin Islands,78,Caribbean,vi.emergency@vitema.vi.gov

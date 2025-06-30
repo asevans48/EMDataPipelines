@@ -1,0 +1,411 @@
+# models/staging/sources.yml
+version: 2
+
+sources:
+  - name: raw_data
+    description: "Raw emergency management data from federal and state sources"
+    database: emergency_data_dev
+    schema: raw_data
+    
+    # Data freshness monitoring for federal compliance
+    freshness:
+      warn_after: {count: 24, period: hour}
+      error_after: {count: 48, period: hour}
+    
+    # Federal compliance metadata
+    meta:
+      classification_level: "PUBLIC"
+      compliance_frameworks: ["FedRAMP", "DORA", "FISMA"]
+      data_retention_years: 7
+      owner: "Emergency Management Data Team"
+      contact: "data-team@emergency.gov"
+    
+    tables:
+      - name: fema_disaster_declarations
+        description: "FEMA disaster declarations from OpenFEMA API"
+        external:
+          location: "s3://emergency-data-raw/fema/disaster_declarations/"
+          file_format: "PARQUET"
+        
+        # Enhanced freshness for disaster data
+        freshness:
+          warn_after: {count: 6, period: hour}
+          error_after: {count: 24, period: hour}
+        
+        # Federal compliance metadata  
+        meta:
+          source_system: "OpenFEMA API"
+          update_frequency: "Real-time"
+          classification: "PUBLIC"
+          retention_requirement: "7 years per FEMA regulations"
+          privacy_level: "PUBLIC"
+        
+        columns:
+          - name: disaster_number
+            description: "Unique FEMA disaster identifier (FEMA-XXXX-DR-XX)"
+            data_type: varchar
+            constraints:
+              - type: not_null
+              - type: unique
+            meta:
+              pii: false
+              business_critical: true
+              
+          - name: state
+            description: "Two-letter state postal code"
+            data_type: varchar
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              reference_table: "state_codes"
+              
+          - name: declaration_date
+            description: "Date disaster was declared by FEMA"
+            data_type: date
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              time_dimension: true
+              
+          - name: incident_type
+            description: "Type of disaster (Hurricane, Flood, Fire, etc.)"
+            data_type: varchar
+            meta:
+              pii: false
+              categorical: true
+              reference_table: "disaster_types"
+              
+          - name: declaration_type
+            description: "Type of declaration (DR, EM, FM)"
+            data_type: varchar
+            meta:
+              pii: false
+              categorical: true
+              
+          - name: title
+            description: "Official disaster title/description"
+            data_type: text
+            meta:
+              pii: false
+              
+          - name: incident_begin_date
+            description: "Date the incident began"
+            data_type: date
+            meta:
+              pii: false
+              time_dimension: true
+              
+          - name: incident_end_date
+            description: "Date the incident ended (if applicable)"
+            data_type: date
+            meta:
+              pii: false
+              time_dimension: true
+              
+          - name: designated_area
+            description: "Geographic areas covered by declaration"
+            data_type: text
+            meta:
+              pii: false
+              geographic: true
+              
+          - name: fy_declared
+            description: "Federal fiscal year of declaration"
+            data_type: integer
+            meta:
+              pii: false
+              fiscal_dimension: true
+
+      - name: noaa_weather_alerts
+        description: "NOAA National Weather Service alerts and warnings"
+        external:
+          location: "s3://emergency-data-raw/noaa/weather_alerts/"
+          file_format: "JSON"
+        
+        # High frequency freshness for weather data
+        freshness:
+          warn_after: {count: 2, period: hour}
+          error_after: {count: 6, period: hour}
+        
+        meta:
+          source_system: "NOAA Weather API"
+          update_frequency: "Every 5 minutes"
+          classification: "PUBLIC"
+          retention_requirement: "3 years for weather data"
+          privacy_level: "PUBLIC"
+        
+        columns:
+          - name: alert_id
+            description: "Unique weather alert identifier from NOAA"
+            data_type: varchar
+            constraints:
+              - type: not_null
+              - type: unique
+            meta:
+              pii: false
+              business_critical: true
+              
+          - name: event
+            description: "Weather event type"
+            data_type: varchar
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              categorical: true
+              reference_table: "weather_event_codes"
+              
+          - name: severity
+            description: "Alert severity level (Minor, Moderate, Severe, Extreme)"
+            data_type: varchar
+            meta:
+              pii: false
+              categorical: true
+              
+          - name: urgency
+            description: "Alert urgency (Immediate, Expected, Future, Past)"
+            data_type: varchar
+            meta:
+              pii: false
+              categorical: true
+              
+          - name: certainty
+            description: "Alert certainty (Observed, Likely, Possible, Unlikely)"
+            data_type: varchar
+            meta:
+              pii: false
+              categorical: true
+              
+          - name: headline
+            description: "Brief alert headline"
+            data_type: text
+            meta:
+              pii: false
+              
+          - name: description
+            description: "Detailed alert description"
+            data_type: text
+            meta:
+              pii: false
+              
+          - name: instruction
+            description: "Public safety instructions"
+            data_type: text
+            meta:
+              pii: false
+              public_safety_critical: true
+              
+          - name: effective
+            description: "Alert effective date and time"
+            data_type: datetime
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              time_dimension: true
+              
+          - name: expires
+            description: "Alert expiration date and time"
+            data_type: datetime
+            meta:
+              pii: false
+              time_dimension: true
+              
+          - name: area_desc
+            description: "Geographic area description"
+            data_type: text
+            meta:
+              pii: false
+              geographic: true
+
+      - name: coagmet_weather_data
+        description: "Colorado Agricultural Meteorological Network station data"
+        external:
+          location: "s3://emergency-data-raw/coagmet/weather_stations/"
+          file_format: "CSV"
+        
+        # Real-time freshness for weather station data
+        freshness:
+          warn_after: {count: 1, period: hour}
+          error_after: {count: 3, period: hour}
+        
+        meta:
+          source_system: "Colorado AgMet Network"
+          update_frequency: "Hourly"
+          classification: "PUBLIC"
+          retention_requirement: "3 years for meteorological data"
+          privacy_level: "PUBLIC"
+          geographic_scope: "Colorado"
+        
+        columns:
+          - name: station_id
+            description: "Weather station identifier"
+            data_type: varchar
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              business_critical: true
+              
+          - name: timestamp
+            description: "Observation timestamp (UTC)"
+            data_type: datetime
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              time_dimension: true
+              
+          - name: temperature
+            description: "Air temperature in Celsius"
+            data_type: decimal(5,2)
+            meta:
+              pii: false
+              measurement_unit: "Celsius"
+              valid_range: [-50, 60]
+              
+          - name: humidity
+            description: "Relative humidity percentage"
+            data_type: decimal(5,2)
+            meta:
+              pii: false
+              measurement_unit: "Percent"
+              valid_range: [0, 100]
+              
+          - name: wind_speed
+            description: "Wind speed in km/h"
+            data_type: decimal(5,2)
+            meta:
+              pii: false
+              measurement_unit: "km/h"
+              valid_range: [0, 200]
+              
+          - name: precipitation
+            description: "Precipitation in mm"
+            data_type: decimal(8,2)
+            meta:
+              pii: false
+              measurement_unit: "mm"
+              valid_range: [0, 500]
+              
+          - name: station_name
+            description: "Human-readable station name"
+            data_type: varchar
+            meta:
+              pii: false
+              
+          - name: latitude
+            description: "Station latitude in decimal degrees"
+            data_type: decimal(10,6)
+            meta:
+              pii: false
+              geographic: true
+              coordinate_type: "latitude"
+              
+          - name: longitude
+            description: "Station longitude in decimal degrees"
+            data_type: decimal(10,6)
+            meta:
+              pii: false
+              geographic: true
+              coordinate_type: "longitude"
+
+      - name: usda_agricultural_data
+        description: "USDA Risk Management Agency agricultural insurance data"
+        external:
+          location: "s3://emergency-data-raw/usda/agricultural_insurance/"
+          file_format: "PARQUET"
+        
+        # Daily freshness for agricultural data
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 72, period: hour}
+        
+        meta:
+          source_system: "USDA Risk Management Agency"
+          update_frequency: "Daily"
+          classification: "PUBLIC"
+          retention_requirement: "3 years for agricultural insurance data"
+          privacy_level: "AGGREGATED_PUBLIC"
+          data_privacy_note: "Individual producer data aggregated for privacy"
+        
+        columns:
+          - name: program_year
+            description: "Insurance program year"
+            data_type: integer
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              fiscal_dimension: true
+              
+          - name: state_code
+            description: "State FIPS or postal code"
+            data_type: varchar
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              reference_table: "state_codes"
+              
+          - name: county_code
+            description: "County FIPS code"
+            data_type: varchar
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              geographic: true
+              
+          - name: commodity
+            description: "Agricultural commodity type"
+            data_type: varchar
+            constraints:
+              - type: not_null
+            meta:
+              pii: false
+              categorical: true
+              
+          - name: practice
+            description: "Farming practice description"
+            data_type: varchar
+            meta:
+              pii: false
+              categorical: true
+              
+          - name: coverage_level
+            description: "Insurance coverage level percentage"
+            data_type: decimal(5,2)
+            meta:
+              pii: false
+              measurement_unit: "Percent"
+              valid_range: [0, 100]
+              
+          - name: premium_amount
+            description: "Insurance premium amount in USD"
+            data_type: decimal(12,2)
+            meta:
+              pii: false
+              measurement_unit: "USD"
+              sensitive: false
+              aggregated: true
+              
+          - name: liability_amount
+            description: "Insurance liability amount in USD"
+            data_type: decimal(12,2)
+            meta:
+              pii: false
+              measurement_unit: "USD"
+              sensitive: false
+              aggregated: true
+              
+          - name: indemnity_amount
+            description: "Insurance indemnity paid in USD"
+            data_type: decimal(12,2)
+            meta:
+              pii: false
+              measurement_unit: "USD"
+              sensitive: false
+              aggregated: true

@@ -1,12 +1,9 @@
-
-# Name your project! Project names should contain only lowercase characters
-# and underscores. A good package name should reflect your organization's
-# name or the intended use of these models
-name: 'emergency_data'
+name: 'emergency_management'
 version: '1.0.0'
+config-version: 2
 
 # This setting configures which "profile" dbt uses for this project.
-profile: 'emergency_data'
+profile: 'emergency_management'
 
 # These configurations specify where dbt should look for different types of files.
 # The `model-paths` config, for example, states that models in this project can be
@@ -18,19 +15,103 @@ seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
+target-path: "target"  # directory which will store compiled SQL files
 clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
-
 # Configuring models
-# Full documentation: https://docs.getdbt.com/docs/configuring-models
+# Full documentation: https://docs.getdbt.com/reference/model-configs
 
-# In this example config, we tell dbt to build all models in the example/
-# directory as views. These settings can be overridden in the individual model
-# files using the `{{ config(...) }}` macro.
 models:
-  emergency_data:
-    # Config indicated by + and applies to all files under models/example/
-    example:
+  emergency_management:
+    # Configuration for staging models
+    staging:
+      +materialized: table
+      +on_schema_change: "fail"
+      +post-hook: "ALTER TABLE {{ this }} ADD COLUMN IF NOT EXISTS __dbt_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP()"
+      
+    # Configuration for mart models  
+    marts:
+      +materialized: table
+      +on_schema_change: "fail"
+      +post-hook: "ALTER TABLE {{ this }} ADD COLUMN IF NOT EXISTS __dbt_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP()"
+      
+    # Configuration for metrics models
+    metrics:
       +materialized: view
+      +on_schema_change: "sync_all_columns"
+      
+    # Configuration for public API models
+    public:
+      +materialized: table
+      +on_schema_change: "sync_all_columns"
+      +post-hook: "ALTER TABLE {{ this }} ADD COLUMN IF NOT EXISTS __dbt_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP()"
+
+# Global variables for federal compliance
+vars:
+  # Data classification levels
+  classification_levels:
+    public: "PUBLIC"
+    internal: "INTERNAL" 
+    restricted: "RESTRICTED"
+    confidential: "CONFIDENTIAL"
+    
+  # Data retention periods (in days)
+  retention_periods:
+    emergency_events: 2555  # 7 years for FEMA compliance
+    weather_data: 1095      # 3 years for NOAA compliance
+    agricultural_data: 1095 # 3 years for USDA compliance
+    audit_logs: 2555        # 7 years for federal audit requirements
+    
+  # Federal compliance frameworks
+  compliance_frameworks: ["FedRAMP", "DORA", "FISMA", "NIST"]
+  
+  # Quality thresholds
+  quality_thresholds:
+    completeness_threshold: 0.95
+    accuracy_threshold: 0.98
+    timeliness_threshold_hours: 24
+    
+  # StarRocks specific configurations
+  starrocks:
+    # Bucket configuration for partitioning
+    bucket_size: 10
+    # Replication settings for federal compliance
+    replication_num: 3
+    # Compression for efficient storage
+    compression: "LZ4"
+
+# Seeds configuration
+seeds:
+  emergency_management:
+    +enabled: true
+    +schema: reference_data
+    state_codes:
+      +column_types:
+        state_code: varchar(2)
+        state_name: varchar(50)
+        fips_code: varchar(2)
+    disaster_types:
+      +column_types:
+        disaster_code: varchar(10)
+        disaster_name: varchar(100)
+        category: varchar(50)
+    weather_event_codes:
+      +column_types:
+        event_code: varchar(20)
+        event_name: varchar(100)
+        severity_level: int
+
+# Snapshot configuration
+snapshots:
+  emergency_management:
+    +target_schema: snapshots
+    +strategy: timestamp
+    +updated_at: 'updated_at'
+
+# Test configuration
+tests:
+  emergency_management:
+    +store_failures: true
+    +schema: data_quality_tests

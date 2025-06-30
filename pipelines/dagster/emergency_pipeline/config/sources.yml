@@ -1,249 +1,289 @@
 # Emergency Management Data Sources Configuration
-# Modular configuration for adding new data sources
+# Modular configuration for all emergency data sources
 
-data_sources:
-  # Federal Emergency Management Agency
-  fema:
-    name: "FEMA OpenFEMA API"
-    description: "Federal disaster declarations and emergency data"
-    enabled: true
-    
-    api_config:
-      base_url: "https://www.fema.gov/api/open/v2"
-      endpoints:
-        disaster_declarations: "/DisasterDeclarationsSummaries"
-        public_assistance: "/PublicAssistanceApplicants"
-        individual_assistance: "/IndividualAssistancePrograms"
-      
-      authentication:
-        type: "none"  # Public API
-        rate_limit_per_hour: 1000
-      
-      request_config:
-        timeout_seconds: 30
-        retry_attempts: 3
-        retry_delay_seconds: 5
-        batch_size: 5000
-    
-    data_mapping:
-      disaster_number: "disasterNumber"
-      state: "state"
-      declaration_date: "declarationDate"
-      incident_type: "incidentType"
-      title: "title"
-    
-    quality_rules:
-      required_fields: ["disasterNumber", "state", "declarationDate"]
-      date_format: "%Y-%m-%dT%H:%M:%S.%fZ"
-      state_code_validation: true
+# Global source settings
+global_settings:
+  default_timeout_seconds: 30
+  default_rate_limit_per_minute: 60
+  default_retry_attempts: 3
+  default_retry_delay_seconds: 1
 
-  # National Oceanic and Atmospheric Administration
-  noaa:
-    name: "NOAA Weather API"
-    description: "Weather alerts, forecasts, and climate data"
-    enabled: true
+# FEMA OpenFEMA API Configuration
+fema:
+  name: "FEMA OpenFEMA"
+  description: "Federal Emergency Management Agency disaster declarations and assistance data"
+  enabled: true
+  
+  api:
+    base_url: "https://www.fema.gov/api/open/v2/"
+    api_key_required: false
+    api_key_env_var: "FEMA_API_KEY"
+    rate_limit_per_minute: 60
+    timeout_seconds: 30
     
-    api_config:
-      base_url: "https://api.weather.gov"
-      endpoints:
-        active_alerts: "/alerts/active"
-        forecast: "/gridpoints/{office}/{gridX},{gridY}/forecast"
-        stations: "/stations"
+  endpoints:
+    disaster_declarations:
+      path: "DisasterDeclarationsSummaries"
+      description: "Disaster declarations and summaries"
+      batch_size: 1000
+      max_records: 10000
       
-      authentication:
-        type: "none"  # Public API
-        rate_limit_per_hour: 5000
-        user_agent: "EmergencyManagement/1.0 (contact@emergency-data.gov)"
+    public_assistance:
+      path: "PublicAssistanceApplicants"
+      description: "Public assistance applicant data"
+      batch_size: 1000
+      max_records: 5000
       
-      request_config:
-        timeout_seconds: 30
-        retry_attempts: 3
-        retry_delay_seconds: 2
-        batch_size: 1000
-    
-    data_mapping:
-      alert_id: "properties.id"
-      event_type: "properties.event"
-      severity: "properties.severity"
-      urgency: "properties.urgency"
-      headline: "properties.headline"
-      effective: "properties.effective"
-      expires: "properties.expires"
-    
-    quality_rules:
-      required_fields: ["id", "event", "severity"]
-      datetime_format: "ISO8601"
-      severity_values: ["Minor", "Moderate", "Severe", "Extreme"]
+    hazard_mitigation:
+      path: "HazardMitigationAssistance"
+      description: "Hazard mitigation assistance projects"
+      batch_size: 500
+      max_records: 5000
+  
+  data_classification: "PUBLIC"
+  update_frequency: "hourly"
+  retention_days: 2555  # 7 years for federal compliance
+  
+  filters:
+    default_state: null
+    default_start_date: "30_days_ago"
+    include_closed_disasters: true
 
-  # Colorado Agricultural Meteorological Network
-  coagmet:
-    name: "CoAgMet Weather Stations"
-    description: "Agricultural weather monitoring for Colorado"
-    enabled: true
+# NOAA Weather API Configuration  
+noaa:
+  name: "NOAA Weather Service"
+  description: "National Weather Service alerts, forecasts, and observations"
+  enabled: true
+  
+  api:
+    base_url: "https://api.weather.gov/"
+    api_key_required: false
+    contact_info_env_var: "NOAA_CONTACT_INFO"
+    rate_limit_per_minute: 300  # Higher limit for weather data
+    timeout_seconds: 20
     
-    api_config:
-      base_url: "https://coagmet.colostate.edu/data_access/web_service"
-      endpoints:
-        stations: "/get_stations.php"
-        station_data: "/get_data.php"
+  endpoints:
+    active_alerts:
+      path: "alerts/active"
+      description: "Active weather alerts and warnings"
+      batch_size: 500
+      max_records: 2000
       
-      authentication:
-        type: "api_key"
-        api_key_env: "COAGMET_API_KEY"
-        rate_limit_per_hour: 2000
+    forecast_zones:
+      path: "zones/forecast"
+      description: "Weather forecast zones"
+      batch_size: 100
+      max_records: 1000
       
-      request_config:
-        timeout_seconds: 45
-        retry_attempts: 3
-        retry_delay_seconds: 3
-        batch_size: 500
-    
-    data_mapping:
-      station_id: "station_id"
-      timestamp: "timestamp"
-      temperature: "temperature"
-      humidity: "humidity"
-      precipitation: "precipitation"
-      wind_speed: "wind_speed"
-    
-    quality_rules:
-      required_fields: ["station_id", "timestamp"]
-      temperature_range: [-50, 120]  # Fahrenheit
-      humidity_range: [0, 100]
-      precipitation_max: 50  # inches per day
+    stations:
+      path: "stations"
+      description: "Weather observation stations"
+      batch_size: 200
+      max_records: 2000
+      
+    observations:
+      path: "stations/{station_id}/observations"
+      description: "Weather observations for specific station"
+      batch_size: 100
+      max_records: 500
+  
+  data_classification: "PUBLIC"
+  update_frequency: "real_time"  # Every 5-15 minutes
+  retention_days: 365
+  
+  filters:
+    default_severity: null
+    include_expired_alerts: false
+    max_alert_age_hours: 24
 
-  # United States Department of Agriculture
-  usda:
-    name: "USDA NASS QuickStats"
-    description: "Agricultural statistics and crop data"
-    enabled: true
+# Colorado Agricultural Meteorological Network
+coagmet:
+  name: "CoAgMet"
+  description: "Colorado Agricultural Meteorological Network weather station data"
+  enabled: true
+  
+  api:
+    base_url: "https://coagmet.colostate.edu/data_access/web_service/"
+    api_key_required: false
+    rate_limit_per_minute: 30  # Lower limit to be respectful
+    timeout_seconds: 45
     
-    api_config:
-      base_url: "https://quickstats.nass.usda.gov/api"
-      endpoints:
-        quickstats: "/api_GET/"
-        crop_progress: "/get_progress/"
+  endpoints:
+    stations:
+      path: "get_stations.php"
+      description: "List of CoAgMet weather stations"
+      batch_size: null
+      max_records: 200
       
-      authentication:
-        type: "api_key"
-        api_key_env: "USDA_API_KEY"
-        rate_limit_per_hour: 500
-      
-      request_config:
-        timeout_seconds: 60
-        retry_attempts: 3
-        retry_delay_seconds: 10
-        batch_size: 1000
-    
-    data_mapping:
-      year: "year"
-      state_fips: "state_fips_code"
-      commodity: "commodity_desc"
-      data_item: "data_item"
-      value: "Value"
-    
-    quality_rules:
-      required_fields: ["year", "state_fips_code", "commodity_desc"]
-      year_range: [2000, 2030]
-      numeric_validation: true
+    station_data:
+      path: "get_data.php"
+      description: "Weather data for specific station"
+      batch_size: 1000
+      max_records: 5000
+      parameters:
+        format: "json"
+        
+    latest_readings:
+      path: "get_latest.php"
+      description: "Latest readings from all stations"
+      batch_size: null
+      max_records: 200
+  
+  data_classification: "PUBLIC"
+  update_frequency: "hourly"
+  retention_days: 1095  # 3 years for agricultural analysis
+  
+  filters:
+    default_time_window_hours: 24
+    include_quality_flags: true
+    min_data_quality: "good"
 
-# Custom data source template for easy extension
+# USDA Agricultural Data
+usda:
+  name: "USDA NASS"
+  description: "United States Department of Agriculture National Agricultural Statistics Service"
+  enabled: true
+  
+  api:
+    base_url: "https://quickstats.nass.usda.gov/api/"
+    api_key_required: true
+    api_key_env_var: "USDA_API_KEY"
+    rate_limit_per_minute: 30
+    timeout_seconds: 60
+    
+  endpoints:
+    crop_data:
+      path: "api_GET/"
+      description: "Crop production and yield data"
+      batch_size: 1000
+      max_records: 10000
+      parameters:
+        source_desc: "SURVEY"
+        sector_desc: "CROPS"
+        format: "JSON"
+        
+    livestock_data:
+      path: "api_GET/"
+      description: "Livestock inventory and production"
+      batch_size: 1000
+      max_records: 5000
+      parameters:
+        source_desc: "SURVEY"
+        sector_desc: "ANIMALS & PRODUCTS"
+        format: "JSON"
+        
+    disaster_assistance:
+      path: "api_GET/"
+      description: "Agricultural disaster assistance data"
+      batch_size: 500
+      max_records: 2000
+      parameters:
+        source_desc: "SURVEY"
+        format: "JSON"
+  
+  data_classification: "PUBLIC"
+  update_frequency: "daily"
+  retention_days: 2555  # 7 years
+  
+  filters:
+    default_year: "current"
+    include_estimates: true
+    statisticcat_desc: "AREA HARVESTED"
+
+# Custom/External Source Template
 custom_source_template:
-  name: "Custom Data Source"
+  name: "Custom Source Template"
   description: "Template for adding new emergency data sources"
   enabled: false
   
-  api_config:
-    base_url: ""
-    endpoints: {}
-    authentication:
-      type: "none"  # Options: none, api_key, oauth, basic
-      rate_limit_per_hour: 1000
+  api:
+    base_url: "https://api.example.com/"
+    api_key_required: true
+    api_key_env_var: "CUSTOM_API_KEY"
+    rate_limit_per_minute: 60
+    timeout_seconds: 30
     
-    request_config:
-      timeout_seconds: 30
-      retry_attempts: 3
-      retry_delay_seconds: 5
+  endpoints:
+    main_data:
+      path: "data"
+      description: "Main data endpoint"
       batch_size: 1000
+      max_records: 10000
+      
+  data_classification: "PUBLIC"
+  update_frequency: "hourly"
+  retention_days: 365
   
-  data_mapping: {}
-  
-  quality_rules:
-    required_fields: []
-    custom_validation_rules: []
+  # Custom authentication if needed
+  authentication:
+    type: "bearer_token"  # or "api_key", "oauth2", "basic_auth"
+    header_name: "Authorization"
+    
+  # Custom data transformation
+  transformation:
+    date_fields: ["timestamp", "created_at"]
+    numeric_fields: ["value", "count"]
+    required_fields: ["id", "timestamp"]
 
-# Global configuration
-global_config:
-  # Default settings applied to all sources
-  defaults:
-    max_concurrent_requests: 5
-    request_timeout: 30
-    retry_backoff_factor: 2
-    enable_caching: true
-    cache_ttl_seconds: 300
-  
-  # Data classification
-  classification:
-    default_level: "PUBLIC"
-    sensitive_fields: []
-    pii_detection: true
-  
-  # Federal compliance
-  compliance:
-    audit_logging: true
-    data_retention_days: 2555  # 7 years
-    encryption_required: true
-    access_logging: true
+# Source Groupings for Pipeline Management
+source_groups:
+  weather_sources:
+    - noaa
+    - coagmet
+    description: "Weather and meteorological data sources"
+    update_frequency: "real_time"
+    
+  disaster_sources:
+    - fema
+    description: "Disaster declaration and response data"
+    update_frequency: "hourly"
+    
+  agricultural_sources:
+    - coagmet
+    - usda
+    description: "Agricultural and farming data sources"
+    update_frequency: "daily"
+    
+  all_public:
+    - fema
+    - noaa
+    - coagmet
+    - usda
+    description: "All public emergency management data sources"
+
+# Data Pipeline Configuration
+pipeline_settings:
+  # Microbatching for Flink
+  microbatch_size: 100
+  microbatch_interval_seconds: 30
   
   # Error handling
-  error_handling:
-    max_error_rate: 10  # percent
-    circuit_breaker_threshold: 5
-    circuit_breaker_timeout: 300
-    dead_letter_queue: true
+  max_retry_attempts: 3
+  retry_backoff_multiplier: 2
+  dead_letter_queue_enabled: true
+  
+  # Performance tuning
+  concurrent_source_fetches: 4
+  max_memory_per_source_mb: 512
+  connection_pool_size: 10
   
   # Monitoring
-  monitoring:
-    health_check_interval: 300  # seconds
-    metrics_collection: true
-    alert_on_failure: true
-    performance_tracking: true
+  health_check_interval_minutes: 5
+  metrics_collection_enabled: true
+  alerting_enabled: true
 
-# Environment-specific overrides
-environments:
-  development:
-    global_config:
-      defaults:
-        max_concurrent_requests: 2
-        enable_caching: false
-      monitoring:
-        health_check_interval: 60
-  
-  production:
-    global_config:
-      defaults:
-        max_concurrent_requests: 10
-        request_timeout: 60
-      error_handling:
-        max_error_rate: 5
-        circuit_breaker_threshold: 3
-      monitoring:
-        health_check_interval: 60
-        alert_on_failure: true
+# Data Quality Defaults
+quality_defaults:
+  completeness_threshold: 0.95
+  freshness_threshold_hours: 4
+  duplicate_threshold: 0.02
+  outlier_detection_enabled: true
+  schema_validation_enabled: true
 
-# Data source grouping for job scheduling
-source_groups:
-  real_time:
-    sources: ["noaa"]
-    schedule: "*/5 * * * *"  # Every 5 minutes
-    priority: "HIGH"
-  
-  frequent:
-    sources: ["fema", "coagmet"]
-    schedule: "0 */1 * * *"  # Every hour
-    priority: "MEDIUM"
-  
-  batch:
-    sources: ["usda"]
-    schedule: "0 6 * * *"  # Daily at 6 AM
-    priority: "LOW"
+# Federal Compliance Defaults
+compliance_defaults:
+  audit_logging_enabled: true
+  data_classification_required: true
+  encryption_at_rest: true
+  retention_policy_enforced: true
+  access_logging_enabled: true
