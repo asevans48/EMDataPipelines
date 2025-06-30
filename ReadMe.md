@@ -2,16 +2,23 @@
 
 A comprehensive, scalable, and federally compliant data pipeline for emergency management data processing. This system ingests data from multiple sources including FEMA, NOAA, CoAgMet, USDA, and custom APIs, processes it through Apache Flink, stores it in StarRocks, and orchestrates workflows using Dagster with DBT transformations.
 
-## 🏛️ Federal Compliance
+## 🌐 Public Data Pipeline
 
-This pipeline is designed to meet **FedRAMP**, **DORA**, and other federal standards including:
+This pipeline processes and shares **publicly available** emergency management data while maintaining the flexibility for future sensitive data handling:
 
-- ✅ Data encryption at rest and in transit
-- ✅ Comprehensive audit logging
-- ✅ Data isolation and access controls
-- ✅ Backup and disaster recovery
-- ✅ Monitoring and alerting
-- ✅ Data retention policies
+**Current Data Sources (All Public):**
+- ✅ FEMA disaster declarations and public assistance data
+- ✅ NOAA weather alerts and observations 
+- ✅ CoAgMet agricultural weather station data
+- ✅ USDA agricultural disaster and insurance data
+
+**Key Features:**
+- ✅ Real-time public data streaming
+- ✅ Open API for public access
+- ✅ Usage analytics and rate limiting
+- ✅ Multiple data formats (REST, streaming, bulk)
+- ✅ Organization-aware access (government, academic, commercial, public)
+- ✅ **Ready for future sensitive data** with built-in tenant separation capability
 
 ## 🏗️ Architecture
 

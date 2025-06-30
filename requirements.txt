@@ -6,7 +6,7 @@ pyarrow==14.0.1
 # HTTP and API clients
 requests==2.31.0
 httpx==0.25.2
-aiohttp==3.8.6
+aiohttp
 
 # Kafka Integration
 kafka-python==2.0.2

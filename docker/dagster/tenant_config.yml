@@ -1,0 +1,286 @@
+# Multi-Tenant Configuration for Emergency Management Pipeline
+# Federal compliance with data isolation
+
+tenants:
+  # State of Colorado Emergency Management
+  colorado_state:
+    organization: "State of Colorado Emergency Management"
+    classification_level: "INTERNAL"
+    contact:
+      admin: "colorado.admin@state.co.us"
+      security_officer: "colorado.security@state.co.us"
+    
+    # Database isolation
+    database:
+      schema: "tenant_colorado"
+      user: "colorado_user"
+      password: "${COLORADO_DB_PASSWORD}"
+      encryption_key_ref: "colorado_encryption_key"
+      backup_retention_days: 2555  # 7 years federal requirement
+    
+    # API access scope and limits
+    api_access:
+      fema:
+        scope: ["CO"]  # Only Colorado data
+        api_key: "${COLORADO_FEMA_API_KEY}"
+        rate_limit_per_hour: 1000
+        endpoints: ["DisasterDeclarationsSummaries", "PublicAssistanceApplicants"]
+      
+      noaa:
+        scope: ["CO"]
+        rate_limit_per_hour: 5000
+        stations: ["KDEN", "KCOS", "KGJT", "KPUB", "KFNL"]
+        alerts_only: false
+      
+      coagmet:
+        scope: ["CO"]
+        rate_limit_per_hour: 2000
+        all_stations: true
+      
+      usda:
+        scope: ["CO"]
+        rate_limit_per_hour: 500
+        programs: ["crop_insurance", "disaster_assistance"]
+    
+    # Data access restrictions
+    data_restrictions:
+      allowed_states: ["CO"]
+      allowed_counties: ["ALL_CO"]  # All Colorado counties
+      allowed_classifications: ["PUBLIC", "INTERNAL"]
+      geographic_bounds:
+        min_latitude: 37.0
+        max_latitude: 41.0
+        min_longitude: -109.0
+        max_longitude: -102.0
+      
+      # PII handling restrictions
+      pii_access: false
+      sensitive_data_access: false
+    
+    # Processing resources
+    processing:
+      flink_parallelism: 2
+      max_memory_mb: 1024
+      dedicated_taskmanager: false
+      network_isolation: false
+    
+    # Audit and compliance
+    audit_requirements:
+      retention_days: 2555
+      siem_integration: true
+      realtime_monitoring: false
+      incident_response_level: "standard"
+      compliance_frameworks: ["DORA", "StateCompliance"]
+    
+    # Security settings
+    security:
+      encryption_at_rest: true
+      encryption_in_transit: true
+      mfa_required: true
+      session_timeout_minutes: 480  # 8 hours
+      max_concurrent_sessions: 5
+      ip_whitelist: ["198.202.64.0/24", "192.168.1.0/24"]  # Colorado state networks
+
+  # Department of Homeland Security
+  federal_dhs:
+    organization: "Department of Homeland Security"
+    classification_level: "RESTRICTED"
+    contact:
+      admin: "dhs.admin@dhs.gov"
+      security_officer: "dhs.security@dhs.gov"
+      compliance_officer: "dhs.compliance@dhs.gov"
+    
+    # Database isolation with enhanced security
+    database:
+      schema: "tenant_federal_dhs"
+      user: "dhs_user"
+      password: "${DHS_DB_PASSWORD}"
+      encryption_key_ref: "dhs_encryption_key"
+      backup_retention_days: 2555
+      additional_encryption: true
+      dedicated_storage: true
+    
+    # Enhanced API access
+    api_access:
+      fema:
+        scope: ["ALL"]  # National access
+        api_key: "${DHS_FEMA_API_KEY}"
+        rate_limit_per_hour: 10000
+        endpoints: ["ALL"]
+        priority_access: true
+      
+      noaa:
+        scope: ["ALL"]
+        rate_limit_per_hour: 50000
+        stations: ["ALL"]
+        alerts_only: false
+        advanced_products: true
+      
+      coagmet:
+        scope: ["ALL"]
+        rate_limit_per_hour: 20000
+        all_stations: true
+      
+      usda:
+        scope: ["ALL"]
+        rate_limit_per_hour: 5000
+        programs: ["ALL"]
+      
+      # Additional federal data sources
+      classified_feeds:
+        scope: ["ALL"]
+        classification_required: "RESTRICTED"
+        api_key: "${DHS_CLASSIFIED_API_KEY}"
+        rate_limit_per_hour: 1000
+    
+    # Unrestricted data access for federal oversight
+    data_restrictions:
+      allowed_states: ["ALL"]
+      allowed_counties: ["ALL"]
+      allowed_classifications: ["PUBLIC", "INTERNAL", "RESTRICTED", "CONFIDENTIAL"]
+      geographic_bounds: null  # No geographic restrictions
+      
+      # Enhanced access permissions
+      pii_access: true
+      sensitive_data_access: true
+      cross_agency_data: true
+    
+    # Enhanced processing resources
+    processing:
+      flink_parallelism: 8
+      max_memory_mb: 4096
+      dedicated_taskmanager: true
+      network_isolation: true
+      priority_queue: true
+    
+    # Strict audit and compliance
+    audit_requirements:
+      retention_days: 2555
+      siem_integration: true
+      realtime_monitoring: true
+      incident_response_level: "critical"
+      compliance_frameworks: ["FedRAMP", "DORA", "FISMA", "NIST"]
+      automated_compliance_checks: true
+    
+    # Maximum security settings
+    security:
+      encryption_at_rest: true
+      encryption_in_transit: true
+      mfa_required: true
+      hardware_token_required: true
+      session_timeout_minutes: 120  # 2 hours for security
+      max_concurrent_sessions: 3
+      ip_whitelist: ["143.231.0.0/16", "153.102.0.0/16"]  # DHS networks
+      additional_authentication: true
+      biometric_verification: false  # Would be true in production
+    
+    # Enhanced monitoring
+    monitoring:
+      realtime_alerting: true
+      anomaly_detection: true
+      behavioral_analysis: true
+      automated_incident_response: true
+      escalation_procedures: true
+
+  # Local Municipality Example (City of Denver)
+  denver_city:
+    organization: "City and County of Denver Emergency Management"
+    classification_level: "INTERNAL"
+    contact:
+      admin: "denver.admin@denvergov.org"
+      security_officer: "denver.security@denvergov.org"
+    
+    # Local government database setup
+    database:
+      schema: "tenant_denver"
+      user: "denver_user"
+      password: "${DENVER_DB_PASSWORD}"
+      encryption_key_ref: "denver_encryption_key"
+      backup_retention_days: 2555
+    
+    # Limited API access scope
+    api_access:
+      fema:
+        scope: ["CO"]  # Colorado only
+        county_filter: ["031"]  # Denver County FIPS code
+        api_key: "${DENVER_FEMA_API_KEY}"
+        rate_limit_per_hour: 500
+        endpoints: ["DisasterDeclarationsSummaries"]
+      
+      noaa:
+        scope: ["CO"]
+        rate_limit_per_hour: 2000
+        stations: ["KDEN"]  # Denver International Airport
+        alerts_only: true  # Only weather alerts
+      
+      # No access to USDA or CoAgMet (not relevant for urban area)
+    
+    # Restricted to Denver metro area
+    data_restrictions:
+      allowed_states: ["CO"]
+      allowed_counties: ["031"]  # Denver County only
+      allowed_classifications: ["PUBLIC", "INTERNAL"]
+      geographic_bounds:
+        min_latitude: 39.614
+        max_latitude: 39.914
+        min_longitude: -105.109
+        max_longitude: -104.600
+      
+      pii_access: false
+      sensitive_data_access: false
+    
+    # Minimal processing resources
+    processing:
+      flink_parallelism: 1
+      max_memory_mb: 512
+      dedicated_taskmanager: false
+      network_isolation: false
+    
+    # Standard local government compliance
+    audit_requirements:
+      retention_days: 2555
+      siem_integration: false
+      realtime_monitoring: false
+      incident_response_level: "standard"
+      compliance_frameworks: ["LocalGovCompliance"]
+    
+    # Standard security
+    security:
+      encryption_at_rest: true
+      encryption_in_transit: true
+      mfa_required: true
+      session_timeout_minutes: 240  # 4 hours
+      max_concurrent_sessions: 10
+      ip_whitelist: ["166.78.0.0/16"]  # Denver city networks
+
+# Global tenant management settings
+global_settings:
+  # Default security baselines
+  default_security:
+    min_password_length: 12
+    password_complexity: true
+    session_timeout_max: 480
+    encryption_required: true
+    audit_logging: true
+  
+  # Resource limits
+  resource_limits:
+    max_tenants: 50
+    max_api_calls_per_tenant_per_hour: 100000
+    max_storage_per_tenant_gb: 1000
+    max_processing_threads_per_tenant: 16
+  
+  # Compliance monitoring
+  compliance:
+    automated_scans: true
+    violation_alerts: true
+    compliance_reports: true
+    audit_log_retention_days: 2555
+  
+  # Cross-tenant policies
+  isolation:
+    network_segmentation: true
+    data_encryption_per_tenant: true
+    separate_audit_logs: true
+    resource_quotas: true
+    access_control_validation: true
