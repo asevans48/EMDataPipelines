@@ -1,0 +1,222 @@
+# Public Emergency Data Configuration
+# Simplified setup for publicly available emergency management data
+
+# Public data classification
+data_classification: PUBLIC
+
+# Database configuration for public data
+database:
+  name: "emergency_public_data"
+  host: "starrocks-fe"
+  port: 9030
+  user: "public_user"
+  password: ""  # No password needed for public read-only access
+  
+  # Public data tables
+  tables:
+    fema_disaster_declarations:
+      description: "FEMA disaster declarations and summaries"
+      retention_days: 2555  # Keep for historical analysis
+      update_frequency: "hourly"
+      public_api: true
+      
+    noaa_weather_alerts:
+      description: "NOAA weather alerts and warnings"
+      retention_days: 365   # Weather alerts less critical for long-term storage
+      update_frequency: "real-time"
+      public_api: true
+      
+    coagmet_weather_data:
+      description: "Colorado agricultural weather station data"
+      retention_days: 1095  # 3 years for agricultural analysis
+      update_frequency: "hourly"
+      public_api: true
+      
+    usda_agricultural_data:
+      description: "USDA agricultural disaster and insurance data"
+      retention_days: 2555
+      update_frequency: "daily"
+      public_api: true
+
+# Organization-specific configurations (optional)
+organizations:
+  # Government agencies get higher rate limits
+  government:
+    type: "government"
+    rate_limits:
+      api_calls_per_hour: 10000
+      records_per_hour: 1000000
+    features:
+      real_time_alerts: true
+      bulk_downloads: true
+      historical_data: true
+      custom_queries: true
+    examples:
+      - "colorado_emergency_management"
+      - "denver_emergency_management"
+      - "boulder_county_emergency"
+  
+  # Academic institutions
+  academic:
+    type: "academic"
+    rate_limits:
+      api_calls_per_hour: 5000
+      records_per_hour: 500000
+    features:
+      real_time_alerts: true
+      bulk_downloads: true
+      historical_data: true
+      custom_queries: true
+    examples:
+      - "university_of_colorado"
+      - "colorado_state_university"
+      - "colorado_school_of_mines"
+  
+  # Commercial organizations
+  commercial:
+    type: "commercial"
+    rate_limits:
+      api_calls_per_hour: 2000
+      records_per_hour: 200000
+    features:
+      real_time_alerts: true
+      bulk_downloads: false
+      historical_data: true
+      custom_queries: false
+    examples:
+      - "weather_services_inc"
+      - "disaster_analytics_corp"
+      - "emergency_consulting_llc"
+  
+  # General public
+  public:
+    type: "public"
+    rate_limits:
+      api_calls_per_hour: 1000
+      records_per_hour: 100000
+    features:
+      real_time_alerts: true
+      bulk_downloads: false
+      historical_data: false  # Last 30 days only
+      custom_queries: false
+    examples:
+      - "citizen_developers"
+      - "hobbyist_researchers"
+      - "emergency_preparedness_groups"
+
+# API endpoints for public access
+api_endpoints:
+  base_url: "https://emergency-data-api.gov"
+  
+  # RESTful endpoints
+  rest:
+    disasters: "/api/v1/disasters"
+    weather_alerts: "/api/v1/weather/alerts"
+    agricultural_weather: "/api/v1/weather/agricultural"
+    usda_data: "/api/v1/agricultural/disasters"
+  
+  # Real-time streaming endpoints
+  streaming:
+    weather_alerts: "/stream/weather/alerts"
+    disaster_updates: "/stream/disasters/updates"
+  
+  # Bulk download endpoints (for authorized organizations)
+  bulk:
+    historical_disasters: "/bulk/disasters/historical"
+    weather_historical: "/bulk/weather/historical"
+
+# Data sharing policies
+sharing:
+  # All emergency data is public by default
+  default_classification: "PUBLIC"
+  
+  # Attribution requirements
+  attribution:
+    required: true
+    format: "Data provided by Emergency Management Data Pipeline (EMDP)"
+    sources:
+      - "Federal Emergency Management Agency (FEMA)"
+      - "National Oceanic and Atmospheric Administration (NOAA)"
+      - "Colorado Agricultural Meteorological Network (CoAgMet)"
+      - "United States Department of Agriculture (USDA)"
+  
+  # Usage guidelines
+  usage_guidelines:
+    - "Data is provided as-is for informational purposes"
+    - "Users should verify critical information with authoritative sources"
+    - "Commercial use permitted with proper attribution"
+    - "Redistribution permitted with attribution"
+    - "No warranty expressed or implied"
+
+# Quality and freshness monitoring
+monitoring:
+  data_quality:
+    automated_checks: true
+    quality_thresholds:
+      completeness: 95%
+      accuracy: 98%
+      timeliness: 99%
+  
+  freshness_alerts:
+    fema_data: 4 hours  # Alert if no updates in 4 hours
+    noaa_alerts: 15 minutes  # Critical for safety
+    coagmet_data: 2 hours
+    usda_data: 24 hours
+  
+  public_dashboards:
+    data_status: "https://status.emergency-data-api.gov"
+    usage_analytics: "https://analytics.emergency-data-api.gov"
+
+# Integration options for organizations
+integration:
+  # Simple webhook notifications
+  webhooks:
+    supported: true
+    events:
+      - "new_disaster_declaration"
+      - "severe_weather_alert"
+      - "data_quality_issue"
+  
+  # RSS/Atom feeds
+  feeds:
+    disasters: "/feeds/disasters.rss"
+    weather_alerts: "/feeds/weather/alerts.rss"
+  
+  # Email alerts
+  email_alerts:
+    supported: true
+    frequency_options: ["immediate", "hourly", "daily"]
+    geographic_filtering: true
+
+# Open source and transparency
+open_source:
+  code_repository: "https://github.com/emergency-management/data-pipeline"
+  documentation: "https://docs.emergency-data-api.gov"
+  issue_tracking: "https://github.com/emergency-management/data-pipeline/issues"
+  
+  # Public development
+  roadmap_public: true
+  community_contributions: true
+  public_api_specs: true
+  
+# Compliance for public data
+compliance:
+  # Even though data is public, maintain good practices
+  standards:
+    - "Open Data Standards"
+    - "API Design Standards"
+    - "Accessibility Standards (Section 508)"
+    - "Information Quality Standards"
+  
+  # Privacy protection (even for public data)
+  privacy:
+    no_personal_information: true
+    geographic_precision: "county_level"  # No street-level addresses
+    anonymization: true
+  
+  # Operational transparency
+  transparency:
+    uptime_reporting: true
+    incident_reporting: true
+    change_notifications: true
+    performance_metrics: true

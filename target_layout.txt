@@ -1,0 +1,134 @@
+dagster/
+├── Dockerfile                          # Standard Dagster container
+├── Dockerfile.public                   # Optimized for public data
+├── requirements.txt                    # Python dependencies
+├── dagster.yaml                        # Dagster instance configuration
+├── workspace.yaml                      # Code location configuration
+├── public_data_config.yaml            # Public data settings
+├── tenant_config.yaml                 # Multi-tenant settings (future)
+│
+├── emergency_pipeline/                 # Main pipeline package
+│   ├── __init__.py
+│   ├── definitions.py                  # Main Dagster definitions
+│   │
+│   ├── assets/                         # Data assets
+│   │   ├── __init__.py                 # Asset exports
+│   │   ├── raw_data.py                 # Raw data ingestion assets
+│   │   ├── processed_data.py           # Data transformation assets
+│   │   ├── ml_assets.py                # Machine learning assets
+│   │   └── public_assets.py            # Public-specific assets
+│   │
+│   ├── resources/                      # Dagster resources
+│   │   ├── __init__.py
+│   │   ├── database.py                 # Database connections
+│   │   ├── kafka.py                    # Kafka resources
+│   │   ├── flink.py                    # Flink integration
+│   │   └── public_resources.py         # Public data resources
+│   │
+│   ├── tenant_resources.py             # Multi-tenant resources (future)
+│   ├── public_resources.py             # Simplified public resources
+│   │
+│   ├── jobs/                           # Dagster jobs
+│   │   ├── __init__.py
+│   │   ├── ingestion_jobs.py           # Data ingestion jobs
+│   │   ├── processing_jobs.py          # Data processing jobs
+│   │   ├── quality_jobs.py             # Data quality jobs
+│   │   └── public_jobs.py              # Public data specific jobs
+│   │
+│   ├── sensors/                        # Dagster sensors
+│   │   ├── __init__.py
+│   │   ├── data_sensors.py             # Data freshness sensors
+│   │   ├── error_sensors.py            # Error monitoring sensors
+│   │   └── public_sensors.py           # Public data sensors
+│   │
+│   ├── schedules/                      # Dagster schedules
+│   │   ├── __init__.py
+│   │   ├── ingestion_schedules.py      # Regular data ingestion
+│   │   ├── processing_schedules.py     # Data processing schedules
+│   │   └── public_schedules.py         # Public data schedules
+│   │
+│   ├── ops/                            # Dagster operations
+│   │   ├── __init__.py
+│   │   ├── data_ingestion_ops.py       # Data ingestion operations
+│   │   ├── data_processing_ops.py      # Data processing operations
+│   │   ├── data_quality_ops.py         # Data quality operations
+│   │   └── public_ops.py               # Public data operations
+│   │
+│   ├── utils/                          # Utility functions
+│   │   ├── __init__.py
+│   │   ├── api_clients.py              # API client utilities
+│   │   ├── data_validation.py          # Data validation helpers
+│   │   ├── encryption.py               # Encryption utilities
+│   │   └── usage_tracking.py           # Usage analytics
+│   │
+│   └── config/                         # Configuration files
+│       ├── __init__.py
+│       ├── sources.yaml                # Data source configurations
+│       ├── public_sources.yaml         # Public data source configs
+│       ├── quality_rules.yaml          # Data quality rules
+│       └── compliance.yaml             # Compliance configurations
+│
+├── dbt_project/                        # DBT transformations
+│   ├── dbt_project.yml                 # DBT project configuration
+│   ├── profiles.yml                    # Database connections
+│   │
+│   ├── models/                         # DBT models
+│   │   ├── staging/                    # Staging models
+│   │   │   ├── stg_fema_disasters.sql
+│   │   │   ├── stg_noaa_weather.sql
+│   │   │   ├── stg_coagmet_data.sql
+│   │   │   └── stg_usda_data.sql
+│   │   │
+│   │   ├── marts/                      # Business logic models
+│   │   │   ├── emergency_events.sql
+│   │   │   ├── weather_impacts.sql
+│   │   │   └── disaster_analytics.sql
+│   │   │
+│   │   ├── metrics/                    # Metrics models
+│   │   │   ├── data_quality_metrics.sql
+│   │   │   ├── usage_metrics.sql
+│   │   │   └── api_performance.sql
+│   │   │
+│   │   └── public/                     # Public API optimized models
+│   │       ├── public_disasters.sql
+│   │       ├── public_weather_alerts.sql
+│   │       └── public_agricultural_data.sql
+│   │
+│   ├── tests/                          # DBT tests
+│   │   ├── data_quality_tests.yml
+│   │   ├── business_logic_tests.yml
+│   │   └── public_api_tests.yml
+│   │
+│   ├── seeds/                          # Reference data
+│   │   ├── state_codes.csv
+│   │   ├── disaster_types.csv
+│   │   └── weather_event_codes.csv
+│   │
+│   ├── macros/                         # DBT macros
+│   │   ├── data_classification.sql
+│   │   ├── audit_columns.sql
+│   │   └── public_data_helpers.sql
+│   │
+│   └── snapshots/                      # DBT snapshots
+│       ├── disaster_declarations_snapshot.sql
+│       └── weather_alerts_snapshot.sql
+│
+├── tests/                              # Python tests
+│   ├── __init__.py
+│   ├── test_assets.py
+│   ├── test_resources.py
+│   ├── test_jobs.py
+│   ├── test_public_api.py
+│   └── test_data_quality.py
+│
+├── docs/                               # Documentation
+│   ├── README.md
+│   ├── api_documentation.md
+│   ├── data_dictionary.md
+│   └── deployment_guide.md
+│
+└── scripts/                            # Utility scripts
+    ├── setup_public_database.py
+    ├── migrate_to_tenant_mode.py
+    ├── generate_api_docs.py
+    └── data_quality_report.py
