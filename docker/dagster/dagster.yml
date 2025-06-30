@@ -1,0 +1,87 @@
+# Dagster Configuration for Emergency Management Pipeline
+storage:
+  postgres:
+    postgres_db:
+      username: dagster
+      password: dagster123
+      hostname: dagster-postgres
+      db_name: dagster
+      port: 5432
+
+compute_logs:
+  module: dagster_postgres.compute_logs
+  class: PostgresComputeLogManager
+  config:
+    postgres_db:
+      username: dagster
+      password: dagster123
+      hostname: dagster-postgres
+      db_name: dagster
+      port: 5432
+
+local_artifact_storage:
+  module: dagster.core.storage.file_manager
+  class: LocalFileManager
+  config:
+    base_dir: "/opt/dagster/storage/artifacts"
+
+schedule_storage:
+  module: dagster_postgres.schedule_storage
+  class: PostgresScheduleStorage
+  config:
+    postgres_db:
+      username: dagster
+      password: dagster123
+      hostname: dagster-postgres
+      db_name: dagster
+      port: 5432
+
+event_log_storage:
+  module: dagster_postgres.event_log
+  class: PostgresEventLogStorage
+  config:
+    postgres_db:
+      username: dagster
+      password: dagster123
+      hostname: dagster-postgres
+      db_name: dagster
+      port: 5432
+
+run_launcher:
+  module: dagster.core.launcher
+  class: DefaultRunLauncher
+
+sensors:
+  use_threads: true
+  num_workers: 4
+
+schedules:
+  use_threads: true
+  num_workers: 4
+
+telemetry:
+  enabled: false
+
+# Data Quality Configuration
+data_quality:
+  great_expectations:
+    base_dir: "/opt/dagster/storage/great_expectations"
+
+# Resource Configuration
+resources:
+  starrocks:
+    config:
+      host: "starrocks-fe"
+      port: 9030
+      user: "root"
+      password: ""
+      database: "emergency_data"
+  
+  flink:
+    config:
+      jobmanager_host: "flink-jobmanager"
+      jobmanager_port: 8081
+      
+  kafka:
+    config:
+      bootstrap_servers: "kafka:29092"

@@ -1,0 +1,120 @@
+# Flink Configuration for Emergency Management Pipeline
+# Optimized for quad-core development with federal compliance
+
+# Job Manager Configuration
+jobmanager.rpc.address: flink-jobmanager
+jobmanager.rpc.port: 6123
+jobmanager.bind-host: 0.0.0.0
+jobmanager.memory.process.size: 1024m
+jobmanager.memory.flink.size: 768m
+
+# Task Manager Configuration
+taskmanager.bind-host: 0.0.0.0
+taskmanager.host: flink-taskmanager
+taskmanager.rpc.port: 6122
+taskmanager.memory.process.size: 1024m
+taskmanager.memory.flink.size: 768m
+taskmanager.numberOfTaskSlots: 4
+
+# Parallelism
+parallelism.default: 4
+
+# High Availability (for production)
+high-availability: none
+# high-availability.storageDir: hdfs://namenode:port/flink/ha/
+
+# Checkpointing and State Backend
+state.backend: filesystem
+state.checkpoints.dir: file:///opt/flink/checkpoints
+state.savepoints.dir: file:///opt/flink/savepoints
+state.backend.incremental: true
+
+# Checkpointing Configuration
+execution.checkpointing.interval: 60000
+execution.checkpointing.mode: EXACTLY_ONCE
+execution.checkpointing.timeout: 600000
+execution.checkpointing.max-concurrent-checkpoints: 1
+execution.checkpointing.min-pause: 5000
+execution.checkpointing.prefer-checkpoint-for-recovery: true
+execution.checkpointing.tolerable-failed-checkpoints: 3
+
+# Restart Strategy
+restart-strategy: fixed-delay
+restart-strategy.fixed-delay.attempts: 3
+restart-strategy.fixed-delay.delay: 10s
+
+# Memory Configuration
+taskmanager.memory.task.heap.size: 512m
+taskmanager.memory.managed.size: 128m
+taskmanager.memory.network.max: 64m
+taskmanager.memory.network.min: 32m
+
+# Network Configuration
+taskmanager.network.memory.fraction: 0.1
+taskmanager.network.memory.min: 32mb
+taskmanager.network.memory.max: 64mb
+taskmanager.network.netty.num-arenas: 2
+
+# I/O Configuration
+taskmanager.runtime.hashjoin-bloom-filters: true
+taskmanager.runtime.max-fan: 128
+taskmanager.runtime.sort-spilling-threshold: 0.8
+
+# Metrics and Monitoring
+metrics.reporters: prometheus
+metrics.reporter.prometheus.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+metrics.reporter.prometheus.port: 9249
+
+# Web UI
+web.submit.enable: true
+web.cancel.enable: true
+web.upload.dir: /opt/flink/web-upload
+
+# Logging
+rootLogger.level: INFO
+logger.akka.level: INFO
+logger.kafka.level: INFO
+logger.hadoop.level: WARN
+logger.zookeeper.level: INFO
+
+# Federal Compliance Settings
+security.ssl.enabled: false  # Set to true in production
+security.ssl.keystore: 
+security.ssl.keystore-password: 
+security.ssl.truststore: 
+security.ssl.truststore-password: 
+
+# Watermark Configuration
+pipeline.auto-watermark-interval: 1000
+pipeline.time-characteristic: EventTime
+
+# Table API Configuration
+table.exec.emit.early-fire.enabled: true
+table.exec.emit.early-fire.delay: 5s
+table.exec.emit.late-fire.enabled: true
+table.exec.emit.late-fire.delay: 5s
+
+# Source Configuration for Kafka
+table.exec.source.idle-timeout: 10s
+
+# Sink Configuration
+table.exec.sink.not-null-enforcer: error
+table.exec.sink.upsert-materialize: auto
+
+# Resource Management
+cluster.evenly-spread-out-slots: true
+slotmanager.number-of-slots.max: 16
+
+# Advanced Configuration
+execution.runtime-mode: STREAMING
+pipeline.operator-chaining: true
+pipeline.auto-type-registration: true
+
+# Memory Debugging (for development)
+taskmanager.debug.memory.log: false
+taskmanager.debug.memory.log-interval: 5000ms
+
+# Environmental Variables
+env.java.opts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35"
+env.java.opts.jobmanager: "-Dlog.file=/opt/flink/log/jobmanager.log"
+env.java.opts.taskmanager: "-Dlog.file=/opt/flink/log/taskmanager.log"

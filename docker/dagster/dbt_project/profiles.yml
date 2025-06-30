@@ -1,0 +1,27 @@
+# DBT Profiles for StarRocks Connection
+emergency_management:
+  target: dev
+  outputs:
+    dev:
+      type: mysql
+      host: "{{ env_var('STARROCKS_HOST', 'starrocks-fe') }}"
+      port: 9030
+      user: "{{ env_var('STARROCKS_USER', 'root') }}"
+      password: "{{ env_var('STARROCKS_PASSWORD', '') }}"
+      database: "{{ env_var('STARROCKS_DATABASE', 'emergency_data') }}"
+      schema: emergency_data
+      threads: 4
+      keepalives_idle: 0
+      search_path: "emergency_data"
+      
+    prod:
+      type: mysql
+      host: "{{ env_var('STARROCKS_HOST_PROD', 'starrocks-fe-prod') }}"
+      port: 9030
+      user: "{{ env_var('STARROCKS_USER_PROD', 'root') }}"
+      password: "{{ env_var('STARROCKS_PASSWORD_PROD', '') }}"
+      database: "{{ env_var('STARROCKS_DATABASE_PROD', 'emergency_data_prod') }}"
+      schema: emergency_data_prod
+      threads: 8
+      keepalives_idle: 0
+      search_path: "emergency_data_prod"

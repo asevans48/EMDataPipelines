@@ -1,0 +1,2 @@
+load_from:
+  - python_file: emergency_pipeline/definitions.py
